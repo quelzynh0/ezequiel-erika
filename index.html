@@ -37,12 +37,12 @@
   </div>
 
   <script>
-    // Gerar lista de 45 imagens
-    const imagens = Array.from({ length: 45 }, (_, i) => `img/foto${i + 1}.jpg`);
-    let imagensEmbaralhadas = [];
-    let indiceImagemAtual = -1;
-    let historicoImagens = ['img/foto1.jpg'];
-    let indiceHistorico = 0;
+    // Gerar lista de 50 imagens (foto1.jpg a foto50.jpg)
+    const imagens = Array.from({ length: 50 }, (_, i) => `img/foto${i + 1}.jpg`);
+    let imagensSequencia = []; // Lista fixa com foto1 + ordem aleatória de foto2 a foto50
+    let indiceImagemAtual = 0; // Índice na sequência
+    let historicoImagens = ['img/foto1.jpg']; // Histórico para navegação
+    let indiceHistorico = 0; // Índice no histórico
     let intervaloTroca;
     const fotoElement = document.getElementById('foto-aleatoria');
     const audio = document.getElementById('background-music');
@@ -60,19 +60,17 @@
       return novoArray;
     }
 
-    // Reiniciar lista embaralhada
-    function reiniciarImagensEmbaralhadas() {
-      imagensEmbaralhadas = embaralhar(imagens.filter(img => img !== historicoImagens[indiceHistorico]));
-      indiceImagemAtual = -1;
+    // Criar sequência fixa de imagens (foto1 + aleatório de foto2 a foto50)
+    function criarSequenciaImagens() {
+      const imagensRestantes = imagens.slice(1); // Exclui foto1
+      const imagensAleatorias = embaralhar(imagensRestantes); // Embaralha foto2 a foto50
+      imagensSequencia = ['img/foto1.jpg', ...imagensAleatorias]; // Começa com foto1
     }
 
     // Carregar próxima imagem
     function carregarProximaImagem() {
-      if (indiceImagemAtual + 1 >= imagensEmbaralhadas.length) {
-        reiniciarImagensEmbaralhadas();
-      }
-      indiceImagemAtual++;
-      const imagem = imagensEmbaralhadas[indiceImagemAtual];
+      indiceImagemAtual = (indiceImagemAtual + 1) % imagensSequencia.length; // Cicla ao fim
+      const imagem = imagensSequencia[indiceImagemAtual];
       fotoElement.classList.add('fade');
       setTimeout(() => {
         fotoElement.src = imagem;
@@ -90,6 +88,8 @@
           fotoElement.src = historicoImagens[indice];
           fotoElement.classList.remove('fade');
           indiceHistorico = indice;
+          // Sincronizar indiceImagemAtual com a sequência
+          indiceImagemAtual = imagensSequencia.indexOf(historicoImagens[indice]);
         }, 300);
       }
     }
@@ -225,7 +225,7 @@
 
     // Inicialização
     window.onload = () => {
-      reiniciarImagensEmbaralhadas();
+      criarSequenciaImagens(); // Criar sequência fixa
       iniciarTrocaAutomatica();
       iniciarEfeitoFoto();
       soundWaves.style.display = 'none';
