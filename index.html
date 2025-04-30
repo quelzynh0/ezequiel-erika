@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ezequiel & Érika</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+</head>
+<body>
+  <div class="hearts" id="hearts-container"></div>
+
+  <div class="container">
+    <div class="foto">
+      <img id="foto-aleatoria" src="img/foto1.jpg" alt="Nossa foto" />
+      <div class="photo-hearts" id="photo-hearts-container"></div>
+    </div>
+    <h2>Juntos</h2>
+    <h2 id="tempo">Carregando tempo...</h2>
+    <hr class="separador">
+    <div class="amor">Para você se lembrar de quantos dias se passaram da minha melhor decisão... E que a gente possa voltar aqui e ver que os dias só aumentaram... Eu te amo eternamente meu amor ❤️</div>
+    <hr class="separador">
+    <h2>Nossa Música</h2>
+    <!-- Controles de áudio e ondas sonoras -->
+    <div class="audio-controls">
+      <button id="toggle-btn">⏸</button>
+      <div class="sound-waves" id="sound-waves">
+        <span></span><span></span><span></span><span></span>
+      </div>
+    </div>
+
+    <!-- ÁUDIO -->
+    <audio id="background-music" autoplay loop>
+      <source src="mp3/meusonho.mp3" type="audio/mpeg">
+      Seu navegador não suporta o elemento de áudio.
+    </audio>
+  </div>
+
+  <script>
+    // Gerar lista de 45 imagens
+    const imagens = Array.from({ length: 45 }, (_, i) => `img/foto${i + 1}.jpg`);
+    let imagensEmbaralhadas = [];
+    let indiceImagemAtual = -1;
+    let historicoImagens = ['img/foto1.jpg'];
+    let indiceHistorico = 0;
+    let intervaloTroca;
+    const fotoElement = document.getElementById('foto-aleatoria');
+    const audio = document.getElementById('background-music');
+    const toggleBtn = document.getElementById('toggle-btn');
+    const soundWaves = document.getElementById('sound-waves');
+    const fotoContainer = document.querySelector('.foto');
+
+    // Embaralhar array (Fisher-Yates)
+    function embaralhar(array) {
+      const novoArray = [...array];
+      for (let i = novoArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [novoArray[i], novoArray[j]] = [novoArray[j], novoArray[i]];
+      }
+      return novoArray;
+    }
+
+    // Reiniciar lista embaralhada
+    function reiniciarImagensEmbaralhadas() {
+      imagensEmbaralhadas = embaralhar(imagens.filter(img => img !== historicoImagens[indiceHistorico]));
+      indiceImagemAtual = -1;
+    }
+
+    // Carregar próxima imagem
+    function carregarProximaImagem() {
+      if (indiceImagemAtual + 1 >= imagensEmbaralhadas.length) {
+        reiniciarImagensEmbaralhadas();
+      }
+      indiceImagemAtual++;
+      const imagem = imagensEmbaralhadas[indiceImagemAtual];
+      fotoElement.classList.add('fade');
+      setTimeout(() => {
+        fotoElement.src = imagem;
+        fotoElement.classList.remove('fade');
+        historicoImagens.push(imagem);
+        indiceHistorico = historicoImagens.length - 1;
+      }, 300);
+    }
+
+    // Carregar imagem do histórico
+    function carregarImagemHistorico(indice) {
+      if (indice >= 0 && indice < historicoImagens.length) {
+        fotoElement.classList.add('fade');
+        setTimeout(() => {
+          fotoElement.src = historicoImagens[indice];
+          fotoElement.classList.remove('fade');
+          indiceHistorico = indice;
+        }, 300);
+      }
+    }
+
+    // Lidar com erro de imagem
+    fotoElement.onerror = () => {
+      fotoElement.src = 'img/foto1.jpg';
+    };
+
+    // Iniciar troca automática
+    function iniciarTrocaAutomatica() {
+      clearInterval(intervaloTroca);
+      intervaloTroca = setInterval(carregarProximaImagem, 2000);
+    }
+
+    // Navegação por gestos
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let lastTap = 0;
+
+    fotoContainer.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    });
+
+    fotoContainer.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      const currentTime = new Date().getTime();
+      const tapInterval = currentTime - lastTap;
+
+      // Detectar double-tap (menos de 300ms entre toques)
+      if (tapInterval < 300 && tapInterval > 0) {
+        iniciarEfeitoFoto(); // Reativar efeito de corações
+      } else {
+        handleSwipe(); // Tratar como swipe se não for double-tap
+      }
+
+      lastTap = currentTime;
+    });
+
+    function handleSwipe() {
+      clearInterval(intervaloTroca);
+      const swipeDistance = touchEndX - touchStartX;
+      if (swipeDistance > 50 && indiceHistorico > 0) {
+        carregarImagemHistorico(indiceHistorico - 1);
+      } else if (swipeDistance < -50) {
+        carregarProximaImagem();
+      }
+      iniciarTrocaAutomatica();
+    }
+
+    // Controle de áudio
+    function updateButtonState() {
+      toggleBtn.innerHTML = audio.paused ? '▶' : '⏸';
+      soundWaves.style.display = audio.paused ? 'none' : 'flex';
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      if (audio.paused) {
+        audio.play().then(updateButtonState).catch(error => console.error('Erro ao tocar áudio:', error));
+      } else {
+        audio.pause();
+        updateButtonState();
+      }
+    });
+
+    audio.addEventListener('play', updateButtonState);
+    audio.addEventListener('pause', updateButtonState);
+    audio.addEventListener('ended', updateButtonState);
+
+    // Contador de tempo
+    const dataInicial = new Date(2024, 4, 10, 19, 38, 0);
+
+    function calcularDiferenca(dataInicial, dataAtual) {
+      let anos = dataAtual.getFullYear() - dataInicial.getFullYear();
+      let meses = dataAtual.getMonth() - dataInicial.getMonth();
+      let dias = dataAtual.getDate() - dataInicial.getDate();
+      let horas = dataAtual.getHours() - dataInicial.getHours();
+      let minutos = dataAtual.getMinutes() - dataInicial.getMinutes();
+      let segundos = dataAtual.getSeconds() - dataInicial.getSeconds();
+
+      if (segundos < 0) { segundos += 60; minutos--; }
+      if (minutos < 0) { minutos += 60; horas--; }
+      if (horas < 0) { horas += 24; dias--; }
+      if (dias < 0) {
+        const mesAnterior = new Date(dataAtual.getFullYear(), dataAtual.getMonth(), 0).getDate();
+        dias += mesAnterior;
+        meses--;
+      }
+      if (meses < 0) { meses += 12; anos--; }
+
+      return { anos, meses, dias, horas, minutos, segundos };
+    }
+
+    function atualizarTempo() {
+      const agora = new Date();
+      const tempo = calcularDiferenca(dataInicial, agora);
+      document.getElementById("tempo").innerText = 
+        `${tempo.anos} anos, ${tempo.meses} meses, ${tempo.dias} dias\n` +
+        `${tempo.horas} horas, ${tempo.minutos} minutos e ${tempo.segundos} segundos`;
+    }
+
+    setInterval(atualizarTempo, 1000);
+    atualizarTempo();
+
+    // Corações animados no fundo
+    function criarCoracao() {
+      const heart = document.createElement("div");
+      heart.className = "heart";
+      heart.style.left = `${Math.random() * 100}%`;
+      heart.style.animationDuration = `${4 + Math.random() * 4}s`;
+      document.getElementById("hearts-container").appendChild(heart);
+      setTimeout(() => heart.remove(), 8000);
+    }
+
+    setInterval(criarCoracao, 300);
+
+    // Emoticons de corações na foto
+    const emoticons = ['❤️', '💖', '💕', '💘', '💞'];
+    function criarCoracaoFoto() {
+      const heart = document.createElement("div");
+      heart.className = "photo-heart";
+      heart.innerHTML = emoticons[Math.floor(Math.random() * emoticons.length)];
+      heart.style.left = `${Math.random() * 100}%`;
+      heart.style.animationDuration = `${2 + Math.random() * 2}s`;
+      document.getElementById("photo-hearts-container").appendChild(heart);
+      setTimeout(() => heart.remove(), 4000);
+    }
+
+    function iniciarEfeitoFoto() {
+      const intervalo = setInterval(criarCoracaoFoto, 200);
+      setTimeout(() => clearInterval(intervalo), 5000);
+    }
+
+    // Inicialização
+    window.onload = () => {
+      reiniciarImagensEmbaralhadas();
+      iniciarTrocaAutomatica();
+      iniciarEfeitoFoto();
+      soundWaves.style.display = 'none';
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.then(updateButtonState).catch(updateButtonState);
+      }
+    };
+  </script>
+</body>
+</html>
