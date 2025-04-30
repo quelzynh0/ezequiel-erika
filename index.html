@@ -18,7 +18,7 @@
     <h2>Juntos</h2>
     <h2 id="tempo">Carregando tempo...</h2>
     <hr class="separador">
-    <div class="amor">Para que a gente nunca esqueça quantos dias se passaram desde a melhor decisão da minha vida... E para que possamos voltar aqui e ver esse número só crescer. Você é o meu sonho, e eu vou te amar por toda a eternidade. ❤️</div>
+    <div class="amor">Para você se lembrar de quantos dias se passaram da minha melhor decisão... E que a gente possa voltar aqui e ver que os dias só aumentaram... Eu te amo eternamente meu amor ❤️</div>
     <hr class="separador">
     <h2>Nossa Música</h2>
     <!-- Controles de áudio e ondas sonoras -->
@@ -37,18 +37,27 @@
   </div>
 
   <script>
-    // Gerar lista de 50 imagens (foto1.jpg a foto50.jpg)
+    // Gerar lista de 50 imagens
     const imagens = Array.from({ length: 50 }, (_, i) => `img/foto${i + 1}.jpg`);
-    let imagensSequencia = []; // Lista fixa com foto1 + ordem aleatória de foto2 a foto50
-    let indiceImagemAtual = 0; // Índice na sequência
-    let historicoImagens = ['img/foto1.jpg']; // Histórico para navegação
-    let indiceHistorico = 0; // Índice no histórico
+    let imagensSequencia = [];
+    let indiceImagemAtual = 0;
+    let historicoImagens = ['img/foto1.jpg'];
+    let indiceHistorico = 0;
     let intervaloTroca;
     const fotoElement = document.getElementById('foto-aleatoria');
     const audio = document.getElementById('background-music');
     const toggleBtn = document.getElementById('toggle-btn');
     const soundWaves = document.getElementById('sound-waves');
     const fotoContainer = document.querySelector('.foto');
+
+    // Preload de imagens
+    function preloadImagens(imagens) {
+      imagens.forEach(src => {
+        const img = new Image();
+        img.src = src;
+        img.onerror = () => console.warn(`Falha ao preload: ${src}`);
+      });
+    }
 
     // Embaralhar array (Fisher-Yates)
     function embaralhar(array) {
@@ -60,16 +69,17 @@
       return novoArray;
     }
 
-    // Criar sequência fixa de imagens (foto1 + aleatório de foto2 a foto50)
+    // Criar sequência fixa de imagens
     function criarSequenciaImagens() {
-      const imagensRestantes = imagens.slice(1); // Exclui foto1
-      const imagensAleatorias = embaralhar(imagensRestantes); // Embaralha foto2 a foto50
-      imagensSequencia = ['img/foto1.jpg', ...imagensAleatorias]; // Começa com foto1
+      const imagensRestantes = imagens.slice(1);
+      const imagensAleatorias = embaralhar(imagensRestantes);
+      imagensSequencia = ['img/foto1.jpg', ...imagensAleatorias];
+      preloadImagens(imagensSequencia); // Preload após criar sequência
     }
 
     // Carregar próxima imagem
     function carregarProximaImagem() {
-      indiceImagemAtual = (indiceImagemAtual + 1) % imagensSequencia.length; // Cicla ao fim
+      indiceImagemAtual = (indiceImagemAtual + 1) % imagensSequencia.length;
       const imagem = imagensSequencia[indiceImagemAtual];
       fotoElement.classList.add('fade');
       setTimeout(() => {
@@ -77,7 +87,7 @@
         fotoElement.classList.remove('fade');
         historicoImagens.push(imagem);
         indiceHistorico = historicoImagens.length - 1;
-      }, 300);
+      }, 500); // Aumentado para 500ms
     }
 
     // Carregar imagem do histórico
@@ -88,21 +98,21 @@
           fotoElement.src = historicoImagens[indice];
           fotoElement.classList.remove('fade');
           indiceHistorico = indice;
-          // Sincronizar indiceImagemAtual com a sequência
           indiceImagemAtual = imagensSequencia.indexOf(historicoImagens[indice]);
-        }, 300);
+        }, 500);
       }
     }
 
     // Lidar com erro de imagem
     fotoElement.onerror = () => {
+      console.warn('Erro ao carregar imagem, revertendo para foto1.jpg');
       fotoElement.src = 'img/foto1.jpg';
     };
 
     // Iniciar troca automática
     function iniciarTrocaAutomatica() {
       clearInterval(intervaloTroca);
-      intervaloTroca = setInterval(carregarProximaImagem, 2000);
+      intervaloTroca = setInterval(carregarProximaImagem, 2500); // Aumentado para 2500ms
     }
 
     // Navegação por gestos
@@ -119,11 +129,10 @@
       const currentTime = new Date().getTime();
       const tapInterval = currentTime - lastTap;
 
-      // Detectar double-tap (menos de 300ms entre toques)
       if (tapInterval < 300 && tapInterval > 0) {
-        iniciarEfeitoFoto(); // Reativar efeito de corações
+        iniciarEfeitoFoto();
       } else {
-        handleSwipe(); // Tratar como swipe se não for double-tap
+        handleSwipe();
       }
 
       lastTap = currentTime;
@@ -225,7 +234,7 @@
 
     // Inicialização
     window.onload = () => {
-      criarSequenciaImagens(); // Criar sequência fixa
+      criarSequenciaImagens();
       iniciarTrocaAutomatica();
       iniciarEfeitoFoto();
       soundWaves.style.display = 'none';
