@@ -83,7 +83,7 @@ body {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  transition: opacity 0.3s ease-in-out;
+  transition: opacity 0.5s ease-in-out; /* Aumentado para 0.5s */
 }
 
 .foto img.fade { opacity: 0; }
