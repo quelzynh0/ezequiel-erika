@@ -154,11 +154,56 @@ function atualizarTempo() {
   const agora = new Date();
   const { anos, meses, dias, horas, minutos, segundos } = calcularDiferenca(dataInicial, agora);
 
-  const formatarUnidade = (valor, singular, plural) => valor === 0 || valor === 1 ? singular : plural;
+  const formatarUnidade = (valor, singular, plural) => valor === 1 ? singular : plural;
 
-  tempoElement.innerText = 
-    `${anos} ${formatarUnidade(anos, 'ano', 'anos')}, ${meses} ${formatarUnidade(meses, 'mês', 'meses')}, ${dias} ${formatarUnidade(dias, 'dia', 'dias')}\n` +
-    `${horas} ${formatarUnidade(horas, 'hora', 'horas')}, ${minutos} ${formatarUnidade(minutos, 'minuto', 'minutos')} e ${segundos} ${formatarUnidade(segundos, 'segundo', 'segundos')}`;
+  // Unidades divididas em duas linhas
+  const unidadesSuperiores = [
+    { valor: anos, nome: formatarUnidade(anos, 'ano', 'anos') },
+    { valor: meses, nome: formatarUnidade(meses, 'mês', 'meses') },
+    { valor: dias, nome: formatarUnidade(dias, 'dia', 'dias') }
+  ].filter(unidade => unidade.valor > 0);
+
+  const unidadesInferiores = [
+    { valor: horas, nome: formatarUnidade(horas, 'hora', 'horas') },
+    { valor: minutos, nome: formatarUnidade(minutos, 'minuto', 'minutos') },
+    { valor: segundos, nome: formatarUnidade(segundos, 'segundo', 'segundos') }
+  ].filter(unidade => unidade.valor > 0);
+
+  // Função para formatar a linha superior (sem "e")
+  const formatarLinhaSuperior = (unidades) => {
+    if (unidades.length === 0) return '';
+    return unidades.map(unidade => `${unidade.valor} ${unidade.nome}`).join(', ');
+  };
+
+  // Função para formatar a linha inferior (com "e" apenas antes dos segundos, sem vírgula)
+  const formatarLinhaInferior = (unidades) => {
+    if (unidades.length === 0) return '';
+    if (unidades.length === 1) {
+      return `${unidades[0].valor} ${unidades[0].nome}`;
+    }
+    const ultimasUnidades = unidades.slice(-1);
+    const unidadesAnteriores = unidades.slice(0, -1);
+    const textoAnteriores = unidadesAnteriores.map(unidade => `${unidade.valor} ${unidade.nome}`).join(', ');
+    return `${textoAnteriores} e ${ultimasUnidades[0].valor} ${ultimasUnidades[0].nome}`;
+  };
+
+  // Formatar as duas linhas
+  const linhaSuperior = formatarLinhaSuperior(unidadesSuperiores);
+  const linhaInferior = formatarLinhaInferior(unidadesInferiores);
+
+  // Combinar as linhas
+  let textoFinal = '';
+  if (linhaSuperior && linhaInferior) {
+    textoFinal = `${linhaSuperior}\n${linhaInferior}`;
+  } else if (linhaSuperior) {
+    textoFinal = linhaSuperior;
+  } else if (linhaInferior) {
+    textoFinal = linhaInferior;
+  } else {
+    textoFinal = 'Menos de um segundo';
+  }
+
+  tempoElement.innerText = textoFinal;
 }
 
 // Corações animados no fundo
