@@ -1,5 +1,6 @@
 // Elementos do DOM
 const fotoElement = document.getElementById('foto-aleatoria');
+const fotoProximaElement = document.getElementById('foto-proxima');
 const audio = document.getElementById('background-music');
 const toggleBtn = document.getElementById('toggle-btn');
 const soundWaves = document.getElementById('sound-waves');
@@ -20,6 +21,7 @@ let intervaloTroca = null;
 let touchStartX = 0;
 let touchEndX = 0;
 let lastTap = 0;
+let isSwiping = false; // Para debounce
 
 // Preload de imagens
 function preloadImagens(imagens) {
@@ -51,40 +53,60 @@ function criarSequenciaImagens() {
 function carregarProximaImagem() {
   indiceImagemAtual = (indiceImagemAtual + 1) % imagensSequencia.length;
   const imagem = imagensSequencia[indiceImagemAtual];
+
+  // Pré-carregar a próxima imagem no elemento oculto
+  fotoProximaElement.src = imagem;
+  fotoProximaElement.style.display = 'block';
+  fotoProximaElement.classList.add('fade');
+
+  // Iniciar transição
   fotoElement.classList.add('fade');
   setTimeout(() => {
     fotoElement.src = imagem;
     fotoElement.classList.remove('fade');
+    fotoProximaElement.style.display = 'none';
     historicoImagens.push(imagem);
     indiceHistorico = historicoImagens.length - 1;
-  }, 500);
+  }, 300); // Sincronizado com o tempo de transição
 }
 
 // Carregar imagem do histórico
 function carregarImagemHistorico(indice) {
   if (indice >= 0 && indice < historicoImagens.length) {
+    const imagem = historicoImagens[indice];
+
+    // Pré-carregar no elemento oculto
+    fotoProximaElement.src = imagem;
+    fotoProximaElement.style.display = 'block';
+    fotoProximaElement.classList.add('fade');
+
+    // Iniciar transição
     fotoElement.classList.add('fade');
     setTimeout(() => {
-      fotoElement.src = historicoImagens[indice];
+      fotoElement.src = imagem;
       fotoElement.classList.remove('fade');
+      fotoProximaElement.style.display = 'none';
       indiceHistorico = indice;
-      indiceImagemAtual = imagensSequencia.indexOf(historicoImagens[indice]);
-    }, 500);
+      indiceImagemAtual = imagensSequencia.indexOf(imagem);
+    }, 300);
   }
 }
 
 // Iniciar troca automática
 function iniciarTrocaAutomatica() {
   clearInterval(intervaloTroca);
-  intervaloTroca = setInterval(carregarProximaImagem, 2500);
+  intervaloTroca = setInterval(carregarProximaImagem, 2500); // Reduzido de 2500ms para 2000ms
 }
 
-// Navegação por gestos
+// Navegação por gestos com debounce
 fotoContainer.addEventListener('touchstart', (e) => {
   touchStartX = e.changedTouches[0].screenX;
 });
 
 fotoContainer.addEventListener('touchend', (e) => {
+  if (isSwiping) return; // Ignorar se já está processando um swipe
+  isSwiping = true;
+
   touchEndX = e.changedTouches[0].screenX;
   const currentTime = Date.now();
   const tapInterval = currentTime - lastTap;
@@ -96,6 +118,11 @@ fotoContainer.addEventListener('touchend', (e) => {
   }
 
   lastTap = currentTime;
+
+  // Resetar debounce após a transição
+  setTimeout(() => {
+    isSwiping = false;
+  }, 300);
 });
 
 function handleSwipe() {
@@ -248,4 +275,8 @@ window.addEventListener('load', () => {
 fotoElement.onerror = () => {
   console.warn('Erro ao carregar imagem, revertendo para foto1.jpg');
   fotoElement.src = 'img/foto1.jpg';
+};
+fotoProximaElement.onerror = () => {
+  console.warn('Erro ao carregar próxima imagem, revertendo para foto1.jpg');
+  fotoProximaElement.src = 'img/foto1.jpg';
 };
