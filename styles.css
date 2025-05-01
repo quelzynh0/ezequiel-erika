@@ -1,3 +1,11 @@
+/* Reset básico */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Estilização do corpo */
 body {
   background-color: #111;
   color: #fff;
@@ -7,12 +15,12 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  margin: 0;
   padding: 20px;
   position: relative;
   overflow-x: hidden;
 }
 
+/* Container principal */
 .container {
   text-align: center;
   max-width: 320px;
@@ -20,6 +28,7 @@ body {
   z-index: 1;
 }
 
+/* Controles de áudio */
 .audio-controls {
   display: flex;
   align-items: center;
@@ -43,6 +52,7 @@ body {
   background-color: #cc2952;
 }
 
+/* Ondas sonoras */
 .sound-waves {
   display: none;
   align-items: center;
@@ -66,6 +76,7 @@ body {
   50% { transform: scaleY(2); }
 }
 
+/* Container da foto */
 .foto {
   width: 100%;
   height: 400px;
@@ -83,37 +94,31 @@ body {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  transition: opacity 0.5s ease-in-out; /* Aumentado para 0.5s */
+  transition: opacity 0.5s ease-in-out;
 }
 
-.foto img.fade { opacity: 0; }
+.foto img.fade {
+  opacity: 0;
+}
+
+/* Estilização de textos */
+h2, #tempo, .amor {
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  font-weight: normal;
+  line-height: 1.4;
+  color: #fff;
+}
 
 h2 {
   margin: 10px 0;
-  font-family: Arial, sans-serif;
-  font-size: 16px;
-  font-weight: normal;
-  line-height: 1.4;
-  color: #fff;
-}
-
-#tempo {
-  font-family: Arial, sans-serif;
-  font-size: 16px;
-  font-weight: normal;
-  line-height: 1.4;
-  color: #fff;
 }
 
 .amor {
   margin-top: 20px;
-  font-family: Arial, sans-serif;
-  font-size: 16px;
-  font-weight: normal;
-  line-height: 1.4;
-  color: #fff;
 }
 
+/* Corações animados no fundo */
 .hearts {
   position: fixed;
   top: 0;
@@ -128,9 +133,7 @@ h2 {
   position: absolute;
   width: 20px;
   height: 20px;
-  background-color: transparent;
-  background-image: url('https://upload.wikimedia.org/commons/thumb/2/20/Love_Heart_SVG.svg/1024px-Love_Heart_SVG.svg.png');
-  background-size: cover;
+  background: url('https://upload.wikimedia.org/commons/thumb/2/20/Love_Heart_SVG.svg/1024px-Love_Heart_SVG.svg.png') no-repeat center/cover;
   animation: fall 6s linear infinite;
 }
 
@@ -139,6 +142,7 @@ h2 {
   100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
 }
 
+/* Corações na foto */
 .photo-hearts {
   position: absolute;
   top: 0;
@@ -160,14 +164,16 @@ h2 {
   100% { transform: translateY(400px) rotate(360deg); opacity: 0; }
 }
 
-audio { display: none; }
+/* Áudio */
+audio {
+  display: none;
+}
 
+/* Separador */
 .separador {
   border: 0;
   height: 2px;
   background: linear-gradient(to right, transparent, #ff3366, transparent);
-  margin: 15px 0;
+  margin: 15px auto;
   width: 80%;
-  margin-left: auto;
-  margin-right: auto;
 }
