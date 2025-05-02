@@ -8,11 +8,58 @@ const CONFIG = {
   HEART_ANIMATION_DURATION: 5000,
   HEART_SPAWN_INTERVAL: 200,
   BACKGROUND_HEART_INTERVAL: 300,
-  INITIAL_COMMENTS: Array(10).fill({
-    username: '@ezequielsmarinho',
-    text: 'Eu te amo',
-    profilePic: 'img/fotoperfil.jpg'
-  })
+  INITIAL_COMMENTS: [
+    {
+      username: 'ezequielsmarinho',
+      text: 'Você é o amor da minha vida! ❤️❤️',
+      profilePic: 'img/fotoperfil.jpg'
+    },
+    {
+      username: 'ezequielsmarinho',
+      text: 'Cada dia com você é um sonho. 🌙✨',
+      profilePic: 'img/fotoperfil.jpg'
+    },
+    {
+      username: 'ezequielsmarinho',
+      text: 'Te amo mais que ontem e menos que amanhã. 💞📅',
+      profilePic: 'img/fotoperfil.jpg'
+    },
+    {
+      username: 'ezequielsmarinho',
+      text: 'Prometo te amar para sempre. 💍💖',
+      profilePic: 'img/fotoperfil.jpg'
+    },
+    {
+      username: 'ezequielsmarinho',
+      text: 'Você é minha linda princesa. 👑💕',
+      profilePic: 'img/fotoperfil.jpg'
+    },
+    {
+      username: 'ezequielsmarinho',
+      text: 'Seu sorriso é a coisa mais linda desse mundo. 😊😊',
+      profilePic: 'img/fotoperfil.jpg'
+    },
+    {
+      username: 'ezequielsmarinho',
+      text: 'Com você, cada momento é perfeito. ⏳❤️',
+      profilePic: 'img/fotoperfil.jpg'
+    },
+    {
+      username: 'ezequielsmarinho',
+      text: 'Você trouxe cor para minha vida. 🎨🌈',
+      profilePic: 'img/fotoperfil.jpg'
+    },
+    {
+      username: 'ezequielsmarinho',
+      text: 'Você faz meu coração bater mais forte. 🔥',
+      profilePic: 'img/fotoperfil.jpg'
+    },
+    {
+      username: 'ezequielsmarinho',
+      text: 'Você, eu e Deus para sempre. 🙏💑❤️',
+      profilePic: 'img/fotoperfil.jpg'
+    }
+  ]
 };
 
 // Elementos do DOM
@@ -44,7 +91,8 @@ const state = {
   touchEndX: 0,
   lastTap: 0,
   isSwiping: false,
-  isLiked: true
+  isLiked: true,
+  isPausedByHold: false // Novo: rastreia pausa por segurar
 };
 
 // Utilitários
@@ -118,7 +166,9 @@ const photoManager = {
 
   startAutoSwap() {
     clearInterval(state.swapInterval);
-    state.swapInterval = setInterval(() => this.loadNext(), CONFIG.AUTO_SWAP_INTERVAL);
+    if (!state.isPausedByHold) {
+      state.swapInterval = setInterval(() => this.loadNext(), CONFIG.AUTO_SWAP_INTERVAL);
+    }
   }
 };
 
@@ -338,8 +388,32 @@ const init = () => {
   photoManager.startAutoSwap();
 
   // Configurar gestos
-  DOM.photoContainer.addEventListener('touchstart', e => gestureHandler.handleTouchStart(e));
-  DOM.photoContainer.addEventListener('touchend', e => gestureHandler.handleTouchEnd(e));
+  DOM.photoContainer.addEventListener('touchstart', e => {
+    gestureHandler.handleTouchStart(e);
+    state.isPausedByHold = true;
+    clearInterval(state.swapInterval);
+  });
+  DOM.photoContainer.addEventListener('touchend', e => {
+    gestureHandler.handleTouchEnd(e);
+    state.isPausedByHold = false;
+    photoManager.startAutoSwap();
+  });
+  DOM.photoContainer.addEventListener('touchcancel', () => {
+    state.isPausedByHold = false;
+    photoManager.startAutoSwap();
+  });
+  DOM.photoContainer.addEventListener('mousedown', () => {
+    state.isPausedByHold = true;
+    clearInterval(state.swapInterval);
+  });
+  DOM.photoContainer.addEventListener('mouseup', () => {
+    state.isPausedByHold = false;
+    photoManager.startAutoSwap();
+  });
+  DOM.photoContainer.addEventListener('mouseleave', () => {
+    state.isPausedByHold = false;
+    photoManager.startAutoSwap();
+  });
   DOM.photoContainer.addEventListener('dblclick', e => gestureHandler.handleDoubleClick(e));
 
   // Configurar áudio
@@ -348,6 +422,11 @@ const init = () => {
   DOM.audio.addEventListener('pause', () => audioManager.updateButtonState());
   DOM.audio.addEventListener('ended', () => audioManager.updateButtonState());
   DOM.audio.play().catch(() => audioManager.updateButtonState());
+
+  // Pausar áudio ao sair da página
+  window.addEventListener('beforeunload', () => {
+    DOM.audio.pause();
+  });
 
   // Configurar botões
   DOM.likeBtn.addEventListener('click', actionButtons.like);
