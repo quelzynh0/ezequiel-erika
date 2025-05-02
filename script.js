@@ -77,7 +77,8 @@ const DOM = {
   shareBtn: document.getElementById('share-btn'),
   commentModal: document.getElementById('comment-modal'),
   commentsList: document.getElementById('comments-list'),
-  closeModalBtn: document.getElementById('close-modal-btn')
+  closeModalBtn: document.getElementById('close-modal-btn'),
+  loading: document.getElementById('loading')
 };
 
 // Estado
@@ -92,7 +93,7 @@ const state = {
   lastTap: 0,
   isSwiping: false,
   isLiked: true,
-  isPausedByHold: false // Novo: rastreia pausa por segurar
+  isPausedByHold: false
 };
 
 // Utilitários
@@ -132,7 +133,10 @@ const photoManager = {
   createSequence() {
     const restImages = CONFIG.IMAGES.slice(1);
     state.sequence = ['img/foto1.jpg', ...utils.shuffle(restImages)];
-    utils.preloadImages(state.sequence);
+    // Pré-carregar as 3 primeiras imagens
+    utils.preloadImages(state.sequence.slice(0, 3));
+    // Pré-carregar as demais em segundo plano
+    utils.preloadImages(state.sequence.slice(3));
   },
 
   loadNext() {
@@ -383,67 +387,77 @@ const actionButtons = {
 
 // Inicialização
 const init = () => {
+  DOM.loading = document.getElementById('loading');
+
   // Configurar imagens
   photoManager.createSequence();
-  photoManager.startAutoSwap();
 
-  // Configurar gestos
-  DOM.photoContainer.addEventListener('touchstart', e => {
-    gestureHandler.handleTouchStart(e);
-    state.isPausedByHold = true;
-    clearInterval(state.swapInterval);
-  });
-  DOM.photoContainer.addEventListener('touchend', e => {
-    gestureHandler.handleTouchEnd(e);
-    state.isPausedByHold = false;
+  // Ocultar loading após 3 segundos
+  setTimeout(() => {
+    DOM.loading.classList.add('hidden');
+    setTimeout(() => DOM.loading.style.display = 'none', 500);
+
+    // Iniciar configurações
     photoManager.startAutoSwap();
-  });
-  DOM.photoContainer.addEventListener('touchcancel', () => {
-    state.isPausedByHold = false;
-    photoManager.startAutoSwap();
-  });
-  DOM.photoContainer.addEventListener('mousedown', () => {
-    state.isPausedByHold = true;
-    clearInterval(state.swapInterval);
-  });
-  DOM.photoContainer.addEventListener('mouseup', () => {
-    state.isPausedByHold = false;
-    photoManager.startAutoSwap();
-  });
-  DOM.photoContainer.addEventListener('mouseleave', () => {
-    state.isPausedByHold = false;
-    photoManager.startAutoSwap();
-  });
-  DOM.photoContainer.addEventListener('dblclick', e => gestureHandler.handleDoubleClick(e));
 
-  // Configurar áudio
-  DOM.speakerBtn.addEventListener('click', () => audioManager.toggle());
-  DOM.audio.addEventListener('play', () => audioManager.updateButtonState());
-  DOM.audio.addEventListener('pause', () => audioManager.updateButtonState());
-  DOM.audio.addEventListener('ended', () => audioManager.updateButtonState());
-  DOM.audio.play().catch(() => audioManager.updateButtonState());
+    // Configurar gestos
+    DOM.photoContainer.addEventListener('touchstart', e => {
+      gestureHandler.handleTouchStart(e);
+      state.isPausedByHold = true;
+      clearInterval(state.swapInterval);
+    });
+    DOM.photoContainer.addEventListener('touchend', e => {
+      gestureHandler.handleTouchEnd(e);
+      state.isPausedByHold = false;
+      photoManager.startAutoSwap();
+    });
+    DOM.photoContainer.addEventListener('touchcancel', () => {
+      state.isPausedByHold = false;
+      photoManager.startAutoSwap();
+    });
+    DOM.photoContainer.addEventListener('mousedown', () => {
+      state.isPausedByHold = true;
+      clearInterval(state.swapInterval);
+    });
+    DOM.photoContainer.addEventListener('mouseup', () => {
+      state.isPausedByHold = false;
+      photoManager.startAutoSwap();
+    });
+    DOM.photoContainer.addEventListener('mouseleave', () => {
+      state.isPausedByHold = false;
+      photoManager.startAutoSwap();
+    });
+    DOM.photoContainer.addEventListener('dblclick', e => gestureHandler.handleDoubleClick(e));
 
-  // Pausar áudio ao sair da página
-  window.addEventListener('beforeunload', () => {
-    DOM.audio.pause();
-  });
+    // Configurar áudio
+    DOM.speakerBtn.addEventListener('click', () => audioManager.toggle());
+    DOM.audio.addEventListener('play', () => audioManager.updateButtonState());
+    DOM.audio.addEventListener('pause', () => audioManager.updateButtonState());
+    DOM.audio.addEventListener('ended', () => audioManager.updateButtonState());
+    DOM.audio.play().catch(() => audioManager.updateButtonState());
 
-  // Configurar botões
-  DOM.likeBtn.addEventListener('click', actionButtons.like);
-  DOM.commentBtn.addEventListener('click', actionButtons.comment);
-  DOM.shareBtn.addEventListener('click', actionButtons.share);
-  DOM.closeModalBtn.addEventListener('click', () => commentManager.closeModal());
-  DOM.likeBtn.classList.add('liked');
+    // Pausar áudio ao sair da página
+    window.addEventListener('beforeunload', () => {
+      DOM.audio.pause();
+    });
 
-  // Configurar contador de tempo
-  timeCounter.update();
-  setInterval(() => timeCounter.update(), 1000);
+    // Configurar botões
+    DOM.likeBtn.addEventListener('click', actionButtons.like);
+    DOM.commentBtn.addEventListener('click', actionButtons.comment);
+    DOM.shareBtn.addEventListener('click', actionButtons.share);
+    DOM.closeModalBtn.addEventListener('click', () => commentManager.closeModal());
+    DOM.likeBtn.classList.add('liked');
 
-  // Configurar corações de fundo
-  setInterval(() => heartEffect.createBackgroundHeart(), CONFIG.BACKGROUND_HEART_INTERVAL);
+    // Configurar contador de tempo
+    timeCounter.update();
+    setInterval(() => timeCounter.update(), 1000);
 
-  // Configurar efeito inicial
-  heartEffect.start();
+    // Configurar corações de fundo
+    setInterval(() => heartEffect.createBackgroundHeart(), CONFIG.BACKGROUND_HEART_INTERVAL);
+
+    // Configurar efeito inicial
+    heartEffect.start();
+  }, 3000);
 
   // Tratamento de erros de imagem
   DOM.currentPhoto.onerror = () => {
