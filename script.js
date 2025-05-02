@@ -1,6 +1,6 @@
 // Configurações
 const CONFIG = {
-  IMAGES: Array.from({ length: 50 }, (_, i) => `img/foto${i + 1}.jpg`),
+  IMAGES: Array.from({ length: 5 }, (_, i) => `img/foto${i + 1}.jpg`),
   INITIAL_DATE: new Date(2024, 4, 10, 19, 38, 0),
   EMOTICONS: ['❤️', '💖', '💕', '💘', '💞'],
   AUTO_SWAP_INTERVAL: 3000,
