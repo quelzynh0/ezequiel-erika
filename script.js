@@ -3,13 +3,13 @@ const CONFIG = {
   IMAGES: Array.from({ length: 50 }, (_, i) => `img/foto${i + 1}.jpg`),
   INITIAL_DATE: new Date(2024, 4, 10, 19, 38, 0),
   EMOTICONS: ['❤️', '💖', '💕', '💘', '💞'],
-  AUTO_SWAP_INTERVAL: 2500,
+  AUTO_SWAP_INTERVAL: 3000,
   DOUBLE_TAP_THRESHOLD: 500,
   HEART_ANIMATION_DURATION: 5000,
   HEART_SPAWN_INTERVAL: 200,
   BACKGROUND_HEART_INTERVAL: 300,
   INITIAL_COMMENTS: [
-    {
+        {
       username: 'ezequielsmarinho',
       text: 'Você é o amor da minha vida! ❤️❤️',
       profilePic: 'img/fotoperfil.jpg'
@@ -77,8 +77,7 @@ const DOM = {
   shareBtn: document.getElementById('share-btn'),
   commentModal: document.getElementById('comment-modal'),
   commentsList: document.getElementById('comments-list'),
-  closeModalBtn: document.getElementById('close-modal-btn'),
-  loading: document.getElementById('loading')
+  closeModalBtn: document.getElementById('close-modal-btn')
 };
 
 // Estado
@@ -93,7 +92,8 @@ const state = {
   lastTap: 0,
   isSwiping: false,
   isLiked: true,
-  isPausedByHold: false
+  isPausedByHold: false,
+  isTransitioning: false
 };
 
 // Utilitários
@@ -133,21 +133,31 @@ const photoManager = {
   createSequence() {
     const restImages = CONFIG.IMAGES.slice(1);
     state.sequence = ['img/foto1.jpg', ...utils.shuffle(restImages)];
-    // Pré-carregar as 3 primeiras imagens
+    // Pré-carregar apenas as 3 primeiras imagens
     utils.preloadImages(state.sequence.slice(0, 3));
-    // Pré-carregar as demais em segundo plano
-    utils.preloadImages(state.sequence.slice(3));
+    // Pré-carregar as demais após 10 segundos
+    setTimeout(() => utils.preloadImages(state.sequence.slice(3)), 10000);
   },
 
   loadNext() {
+    if (state.isTransitioning) {
+      console.log('Transição em andamento, ignorando loadNext');
+      return;
+    }
     state.currentIndex = (state.currentIndex + 1) % state.sequence.length;
     const image = state.sequence[state.currentIndex];
+    console.log(`Carregando próxima imagem: ${image}, índice: ${state.currentIndex}`);
     this.transitionImage(image);
   },
 
   loadFromHistory(index) {
+    if (state.isTransitioning) {
+      console.log('Transição em andamento, ignorando loadFromHistory');
+      return;
+    }
     if (index >= 0 && index < state.history.length) {
       const image = state.history[index];
+      console.log(`Carregando imagem do histórico: ${image}, índice: ${index}`);
       this.transitionImage(image);
       state.historyIndex = index;
       state.currentIndex = state.sequence.indexOf(image);
@@ -155,6 +165,12 @@ const photoManager = {
   },
 
   transitionImage(image) {
+    if (state.isTransitioning) {
+      console.log('Transição já em andamento, ignorando');
+      return;
+    }
+    state.isTransitioning = true;
+    console.log(`Iniciando transição para: ${image}`);
     DOM.nextPhoto.src = image;
     DOM.nextPhoto.style.display = 'block';
     DOM.nextPhoto.classList.add('fade');
@@ -163,8 +179,11 @@ const photoManager = {
       DOM.currentPhoto.src = image;
       DOM.currentPhoto.classList.remove('fade');
       DOM.nextPhoto.style.display = 'none';
+      DOM.nextPhoto.classList.remove('fade');
       state.history.push(image);
       state.historyIndex = state.history.length - 1;
+      state.isTransitioning = false;
+      console.log(`Transição concluída para: ${image}`);
     }, 300);
   },
 
@@ -387,77 +406,69 @@ const actionButtons = {
 
 // Inicialização
 const init = () => {
-  DOM.loading = document.getElementById('loading');
-
   // Configurar imagens
   photoManager.createSequence();
 
-  // Ocultar loading após 3 segundos
-  setTimeout(() => {
-    DOM.loading.classList.add('hidden');
-    setTimeout(() => DOM.loading.style.display = 'none', 500);
+  // Iniciar configurações
+  photoManager.startAutoSwap();
 
-    // Iniciar configurações
+  // Configurar gestos
+  DOM.photoContainer.addEventListener('touchstart', e => {
+    gestureHandler.handleTouchStart(e);
+    state.isPausedByHold = true;
+    clearInterval(state.swapInterval);
+  });
+  DOM.photoContainer.addEventListener('touchend', e => {
+    gestureHandler.handleTouchEnd(e);
+    state.isPausedByHold = false;
     photoManager.startAutoSwap();
+  });
+  DOM.photoContainer.addEventListener('touchcancel', () => {
+    state.isPausedByHold = false;
+    photoManager.startAutoSwap();
+  });
+  DOM.photoContainer.addEventListener('mousedown', () => {
+    state.isPausedByHold = true;
+    clearInterval(state.swapInterval);
+  });
+  DOM.photoContainer.addEventListener('mouseup', () => {
+    state.isPausedByHold = false;
+    photoManager.startAutoSwap();
+  });
+  DOM.photoContainer.addEventListener('mouseleave', () => {
+    state.isPausedByHold = false;
+    photoManager.startAutoSwap();
+  });
+  DOM.photoContainer.addEventListener('dblclick', e => gestureHandler.handleDoubleClick(e));
 
-    // Configurar gestos
-    DOM.photoContainer.addEventListener('touchstart', e => {
-      gestureHandler.handleTouchStart(e);
-      state.isPausedByHold = true;
-      clearInterval(state.swapInterval);
-    });
-    DOM.photoContainer.addEventListener('touchend', e => {
-      gestureHandler.handleTouchEnd(e);
-      state.isPausedByHold = false;
-      photoManager.startAutoSwap();
-    });
-    DOM.photoContainer.addEventListener('touchcancel', () => {
-      state.isPausedByHold = false;
-      photoManager.startAutoSwap();
-    });
-    DOM.photoContainer.addEventListener('mousedown', () => {
-      state.isPausedByHold = true;
-      clearInterval(state.swapInterval);
-    });
-    DOM.photoContainer.addEventListener('mouseup', () => {
-      state.isPausedByHold = false;
-      photoManager.startAutoSwap();
-    });
-    DOM.photoContainer.addEventListener('mouseleave', () => {
-      state.isPausedByHold = false;
-      photoManager.startAutoSwap();
-    });
-    DOM.photoContainer.addEventListener('dblclick', e => gestureHandler.handleDoubleClick(e));
+  // Configurar áudio
+  DOM.speakerBtn.addEventListener('click', () => audioManager.toggle());
+  DOM.audio.addEventListener('play', () => audioManager.updateButtonState());
+  DOM.audio.addEventListener('pause', () => audioManager.updateButtonState());
+  DOM.audio.addEventListener('ended', () => audioManager.updateButtonState());
+  DOM.audio.play().catch(() => audioManager.updateButtonState());
 
-    // Configurar áudio
-    DOM.speakerBtn.addEventListener('click', () => audioManager.toggle());
-    DOM.audio.addEventListener('play', () => audioManager.updateButtonState());
-    DOM.audio.addEventListener('pause', () => audioManager.updateButtonState());
-    DOM.audio.addEventListener('ended', () => audioManager.updateButtonState());
-    DOM.audio.play().catch(() => audioManager.updateButtonState());
+  // Pausar áudio ao sair da página
+  window.addEventListener('beforeunload', () => {
+    DOM.audio.pause();
+  });
 
-    // Pausar áudio ao sair da página
-    window.addEventListener('beforeunload', () => {
-      DOM.audio.pause();
-    });
+  // Configurar botões
+  DOM.likeBtn.addEventListener('click', actionButtons.like);
+  DOM.commentBtn.addEventListener('click', actionButtons.comment);
+  DOM.shareBtn.addEventListener('click', actionButtons.share);
+  DOM.closeModalBtn.addEventListener('click', () => commentManager.closeModal());
+  DOM.likeBtn.classList.add('liked');
 
-    // Configurar botões
-    DOM.likeBtn.addEventListener('click', actionButtons.like);
-    DOM.commentBtn.addEventListener('click', actionButtons.comment);
-    DOM.shareBtn.addEventListener('click', actionButtons.share);
-    DOM.closeModalBtn.addEventListener('click', () => commentManager.closeModal());
-    DOM.likeBtn.classList.add('liked');
+  // Configurar contador de tempo
+  timeCounter.update();
+  setInterval(() => timeCounter.update(), 1000);
 
-    // Configurar contador de tempo
-    timeCounter.update();
-    setInterval(() => timeCounter.update(), 1000);
+  // Configurar corações de fundo
+  setInterval(() => heartEffect.createBackgroundHeart(), CONFIG.BACKGROUND_HEART_INTERVAL);
 
-    // Configurar corações de fundo
-    setInterval(() => heartEffect.createBackgroundHeart(), CONFIG.BACKGROUND_HEART_INTERVAL);
-
-    // Configurar efeito inicial
-    heartEffect.start();
-  }, 3000);
+  // Configurar efeito inicial
+  heartEffect.start();
 
   // Tratamento de erros de imagem
   DOM.currentPhoto.onerror = () => {
