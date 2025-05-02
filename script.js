@@ -1,282 +1,381 @@
-// Elementos do DOM
-const fotoElement = document.getElementById('foto-aleatoria');
-const fotoProximaElement = document.getElementById('foto-proxima');
-const audio = document.getElementById('background-music');
-const toggleBtn = document.getElementById('toggle-btn');
-const soundWaves = document.getElementById('sound-waves');
-const fotoContainer = document.querySelector('.foto');
-const heartsContainer = document.getElementById('hearts-container');
-const photoHeartsContainer = document.getElementById('photo-hearts-container');
-const tempoElement = document.getElementById('tempo');
-
 // Configurações
-const imagens = Array.from({ length: 50 }, (_, i) => `img/foto${i + 1}.jpg`);
-const dataInicial = new Date(2024, 4, 10, 19, 38, 0);
-const emoticons = ['❤️', '💖', '💕', '💘', '💞'];
-let imagensSequencia = [];
-let indiceImagemAtual = 0;
-let historicoImagens = ['img/foto1.jpg'];
-let indiceHistorico = 0;
-let intervaloTroca = null;
-let touchStartX = 0;
-let touchEndX = 0;
-let lastTap = 0;
-let isSwiping = false; // Para debounce
+const CONFIG = {
+  IMAGES: Array.from({ length: 50 }, (_, i) => `img/foto${i + 1}.jpg`),
+  INITIAL_DATE: new Date(2024, 4, 10, 19, 38, 0),
+  EMOTICONS: ['❤️', '💖', '💕', '💘', '💞'],
+  AUTO_SWAP_INTERVAL: 2500,
+  DOUBLE_TAP_THRESHOLD: 500,
+  HEART_ANIMATION_DURATION: 5000,
+  HEART_SPAWN_INTERVAL: 200,
+  BACKGROUND_HEART_INTERVAL: 300,
+  INITIAL_COMMENTS: Array(10).fill({
+    username: '@ezequielsmarinho',
+    text: 'Eu te amo',
+    profilePic: 'img/fotoperfil.jpg'
+  })
+};
 
-// Preload de imagens
-function preloadImagens(imagens) {
-  imagens.forEach(src => {
-    const img = new Image();
-    img.src = src;
-    img.onerror = () => console.warn(`Falha ao preload: ${src}`);
-  });
-}
+// Elementos do DOM
+const DOM = {
+  currentPhoto: document.getElementById('foto-aleatoria'),
+  nextPhoto: document.getElementById('foto-proxima'),
+  audio: document.getElementById('background-music'),
+  speakerBtn: document.getElementById('speaker-btn'),
+  photoContainer: document.querySelector('.foto'),
+  heartsContainer: document.getElementById('hearts-container'),
+  photoHeartsContainer: document.getElementById('photo-hearts-container'),
+  timeDisplay: document.getElementById('tempo'),
+  likeBtn: document.getElementById('like-btn'),
+  commentBtn: document.getElementById('comment-btn'),
+  shareBtn: document.getElementById('share-btn'),
+  commentModal: document.getElementById('comment-modal'),
+  commentsList: document.getElementById('comments-list'),
+  closeModalBtn: document.getElementById('close-modal-btn')
+};
 
-// Embaralhar array (Fisher-Yates)
-function embaralhar(array) {
-  const novoArray = [...array];
-  for (let i = novoArray.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [novoArray[i], novoArray[j]] = [novoArray[j], novoArray[i]];
+// Estado
+const state = {
+  sequence: [],
+  currentIndex: 0,
+  history: ['img/foto1.jpg'],
+  historyIndex: 0,
+  swapInterval: null,
+  touchStartX: 0,
+  touchEndX: 0,
+  lastTap: 0,
+  isSwiping: false,
+  isLiked: true
+};
+
+// Utilitários
+const utils = {
+  preloadImages(images) {
+    images.forEach(src => {
+      const img = new Image();
+      img.src = src;
+      img.onerror = () => console.warn(`Falha ao preload: ${src}`);
+    });
+  },
+
+  shuffle(array) {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+  },
+
+  formatTimeUnit(value, singular, plural) {
+    return value === 1 ? singular : plural;
+  },
+
+  debounce(func, delay) {
+    let timeout;
+    return (...args) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), delay);
+    };
   }
-  return novoArray;
-}
+};
 
-// Criar sequência de imagens
-function criarSequenciaImagens() {
-  const imagensRestantes = imagens.slice(1);
-  imagensSequencia = ['img/foto1.jpg', ...embaralhar(imagensRestantes)];
-  preloadImagens(imagensSequencia);
-}
+// Manipulação de imagens
+const photoManager = {
+  createSequence() {
+    const restImages = CONFIG.IMAGES.slice(1);
+    state.sequence = ['img/foto1.jpg', ...utils.shuffle(restImages)];
+    utils.preloadImages(state.sequence);
+  },
 
-// Carregar próxima imagem
-function carregarProximaImagem() {
-  indiceImagemAtual = (indiceImagemAtual + 1) % imagensSequencia.length;
-  const imagem = imagensSequencia[indiceImagemAtual];
+  loadNext() {
+    state.currentIndex = (state.currentIndex + 1) % state.sequence.length;
+    const image = state.sequence[state.currentIndex];
+    this.transitionImage(image);
+  },
 
-  // Pré-carregar a próxima imagem no elemento oculto
-  fotoProximaElement.src = imagem;
-  fotoProximaElement.style.display = 'block';
-  fotoProximaElement.classList.add('fade');
+  loadFromHistory(index) {
+    if (index >= 0 && index < state.history.length) {
+      const image = state.history[index];
+      this.transitionImage(image);
+      state.historyIndex = index;
+      state.currentIndex = state.sequence.indexOf(image);
+    }
+  },
 
-  // Iniciar transição
-  fotoElement.classList.add('fade');
-  setTimeout(() => {
-    fotoElement.src = imagem;
-    fotoElement.classList.remove('fade');
-    fotoProximaElement.style.display = 'none';
-    historicoImagens.push(imagem);
-    indiceHistorico = historicoImagens.length - 1;
-  }, 300); // Sincronizado com o tempo de transição
-}
-
-// Carregar imagem do histórico
-function carregarImagemHistorico(indice) {
-  if (indice >= 0 && indice < historicoImagens.length) {
-    const imagem = historicoImagens[indice];
-
-    // Pré-carregar no elemento oculto
-    fotoProximaElement.src = imagem;
-    fotoProximaElement.style.display = 'block';
-    fotoProximaElement.classList.add('fade');
-
-    // Iniciar transição
-    fotoElement.classList.add('fade');
+  transitionImage(image) {
+    DOM.nextPhoto.src = image;
+    DOM.nextPhoto.style.display = 'block';
+    DOM.nextPhoto.classList.add('fade');
+    DOM.currentPhoto.classList.add('fade');
     setTimeout(() => {
-      fotoElement.src = imagem;
-      fotoElement.classList.remove('fade');
-      fotoProximaElement.style.display = 'none';
-      indiceHistorico = indice;
-      indiceImagemAtual = imagensSequencia.indexOf(imagem);
+      DOM.currentPhoto.src = image;
+      DOM.currentPhoto.classList.remove('fade');
+      DOM.nextPhoto.style.display = 'none';
+      state.history.push(image);
+      state.historyIndex = state.history.length - 1;
     }, 300);
+  },
+
+  startAutoSwap() {
+    clearInterval(state.swapInterval);
+    state.swapInterval = setInterval(() => this.loadNext(), CONFIG.AUTO_SWAP_INTERVAL);
   }
-}
+};
 
-// Iniciar troca automática
-function iniciarTrocaAutomatica() {
-  clearInterval(intervaloTroca);
-  intervaloTroca = setInterval(carregarProximaImagem, 2500); // Reduzido de 2500ms para 2000ms
-}
+// Manipulação de gestos
+const gestureHandler = {
+  handleTouchStart(e) {
+    state.touchStartX = e.changedTouches[0].screenX;
+  },
 
-// Navegação por gestos com debounce
-fotoContainer.addEventListener('touchstart', (e) => {
-  touchStartX = e.changedTouches[0].screenX;
-});
+  handleTouchEnd(e) {
+    if (state.isSwiping) return;
+    state.isSwiping = true;
+    state.touchEndX = e.changedTouches[0].screenX;
+    const currentTime = Date.now();
+    const tapInterval = currentTime - state.lastTap;
 
-fotoContainer.addEventListener('touchend', (e) => {
-  if (isSwiping) return; // Ignorar se já está processando um swipe
-  isSwiping = true;
+    if (tapInterval < CONFIG.DOUBLE_TAP_THRESHOLD && tapInterval > 0) {
+      e.preventDefault();
+      heartEffect.start();
+    } else {
+      this.handleSwipe();
+    }
 
-  touchEndX = e.changedTouches[0].screenX;
-  const currentTime = Date.now();
-  const tapInterval = currentTime - lastTap;
+    state.lastTap = currentTime;
+    setTimeout(() => { state.isSwiping = false; }, 300);
+  },
 
-  if (tapInterval < 300 && tapInterval > 0) {
-    iniciarEfeitoFoto();
-  } else {
-    handleSwipe();
+  handleDoubleClick(e) {
+    e.preventDefault();
+    heartEffect.start();
+  },
+
+  handleSwipe() {
+    clearInterval(state.swapInterval);
+    const swipeDistance = state.touchEndX - state.touchStartX;
+    if (swipeDistance > 50 && state.historyIndex > 0) {
+      photoManager.loadFromHistory(state.historyIndex - 1);
+    } else if (swipeDistance < -50) {
+      photoManager.loadNext();
+    }
+    photoManager.startAutoSwap();
   }
+};
 
-  lastTap = currentTime;
+// Manipulação de áudio
+const audioManager = {
+  updateButtonState() {
+    const isPaused = DOM.audio.paused;
+    DOM.speakerBtn.innerHTML = isPaused ?
+      `<svg class="speaker-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+         <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+         <path d="M19 9l-4 4m0-4l4 4"/>
+       </svg>` :
+      `<svg class="speaker-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+         <path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/>
+       </svg>`;
+  },
 
-  // Resetar debounce após a transição
-  setTimeout(() => {
-    isSwiping = false;
-  }, 300);
-});
-
-function handleSwipe() {
-  clearInterval(intervaloTroca);
-  const swipeDistance = touchEndX - touchStartX;
-  if (swipeDistance > 50 && indiceHistorico > 0) {
-    carregarImagemHistorico(indiceHistorico - 1);
-  } else if (swipeDistance < -50) {
-    carregarProximaImagem();
+  toggle() {
+    if (DOM.audio.paused) {
+      DOM.audio.play().catch(error => console.error('Erro ao tocar áudio:', error));
+    } else {
+      DOM.audio.pause();
+    }
+    this.updateButtonState();
   }
-  iniciarTrocaAutomatica();
-}
-
-// Controle de áudio
-function updateButtonState() {
-  toggleBtn.innerHTML = audio.paused ? '▶' : '⏸';
-  soundWaves.style.display = audio.paused ? 'none' : 'flex';
-}
-
-toggleBtn.addEventListener('click', () => {
-  if (audio.paused) {
-    audio.play().catch(error => console.error('Erro ao tocar áudio:', error));
-  } else {
-    audio.pause();
-  }
-  updateButtonState();
-});
-
-audio.addEventListener('play', updateButtonState);
-audio.addEventListener('pause', updateButtonState);
-audio.addEventListener('ended', updateButtonState);
+};
 
 // Contador de tempo
-function calcularDiferenca(dataInicial, dataAtual) {
-  let anos = dataAtual.getFullYear() - dataInicial.getFullYear();
-  let meses = dataAtual.getMonth() - dataInicial.getMonth();
-  let dias = dataAtual.getDate() - dataInicial.getDate();
-  let horas = dataAtual.getHours() - dataInicial.getHours();
-  let minutos = dataAtual.getMinutes() - dataInicial.getMinutes();
-  let segundos = dataAtual.getSeconds() - dataInicial.getSeconds();
+const timeCounter = {
+  calculateDifference(start, now) {
+    let years = now.getFullYear() - start.getFullYear();
+    let months = now.getMonth() - start.getMonth();
+    let days = now.getDate() - start.getDate();
+    let hours = now.getHours() - start.getHours();
+    let minutes = now.getMinutes() - start.getMinutes();
+    let seconds = now.getSeconds() - start.getSeconds();
 
-  if (segundos < 0) { segundos += 60; minutos--; }
-  if (minutos < 0) { minutos += 60; horas--; }
-  if (horas < 0) { horas += 24; dias--; }
-  if (dias < 0) {
-    const mesAnterior = new Date(dataAtual.getFullYear(), dataAtual.getMonth(), 0).getDate();
-    dias += mesAnterior;
-    meses--;
-  }
-  if (meses < 0) { meses += 12; anos--; }
-
-  return { anos, meses, dias, horas, minutos, segundos };
-}
-
-function atualizarTempo() {
-  const agora = new Date();
-  const { anos, meses, dias, horas, minutos, segundos } = calcularDiferenca(dataInicial, agora);
-
-  const formatarUnidade = (valor, singular, plural) => valor === 1 ? singular : plural;
-
-  // Unidades divididas em duas linhas
-  const unidadesSuperiores = [
-    { valor: anos, nome: formatarUnidade(anos, 'ano', 'anos') },
-    { valor: meses, nome: formatarUnidade(meses, 'mês', 'meses') },
-    { valor: dias, nome: formatarUnidade(dias, 'dia', 'dias') }
-  ].filter(unidade => unidade.valor > 0);
-
-  const unidadesInferiores = [
-    { valor: horas, nome: formatarUnidade(horas, 'hora', 'horas') },
-    { valor: minutos, nome: formatarUnidade(minutos, 'minuto', 'minutos') },
-    { valor: segundos, nome: formatarUnidade(segundos, 'segundo', 'segundos') }
-  ].filter(unidade => unidade.valor > 0);
-
-  // Função para formatar a linha superior (sem "e")
-  const formatarLinhaSuperior = (unidades) => {
-    if (unidades.length === 0) return '';
-    return unidades.map(unidade => `${unidade.valor} ${unidade.nome}`).join(', ');
-  };
-
-  // Função para formatar a linha inferior (com "e" apenas antes dos segundos, sem vírgula)
-  const formatarLinhaInferior = (unidades) => {
-    if (unidades.length === 0) return '';
-    if (unidades.length === 1) {
-      return `${unidades[0].valor} ${unidades[0].nome}`;
+    if (seconds < 0) { seconds += 60; minutes--; }
+    if (minutes < 0) { minutes += 60; hours--; }
+    if (hours < 0) { hours += 24; days--; }
+    if (days < 0) {
+      const lastMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+      days += lastMonth;
+      months--;
     }
-    const ultimasUnidades = unidades.slice(-1);
-    const unidadesAnteriores = unidades.slice(0, -1);
-    const textoAnteriores = unidadesAnteriores.map(unidade => `${unidade.valor} ${unidade.nome}`).join(', ');
-    return `${textoAnteriores} e ${ultimasUnidades[0].valor} ${ultimasUnidades[0].nome}`;
-  };
+    if (months < 0) { months += 12; years--; }
 
-  // Formatar as duas linhas
-  const linhaSuperior = formatarLinhaSuperior(unidadesSuperiores);
-  const linhaInferior = formatarLinhaInferior(unidadesInferiores);
+    return { years, months, days, hours, minutes, seconds };
+  },
 
-  // Combinar as linhas
-  let textoFinal = '';
-  if (linhaSuperior && linhaInferior) {
-    textoFinal = `${linhaSuperior}\n${linhaInferior}`;
-  } else if (linhaSuperior) {
-    textoFinal = linhaSuperior;
-  } else if (linhaInferior) {
-    textoFinal = linhaInferior;
-  } else {
-    textoFinal = 'Menos de um segundo';
+  update() {
+    const now = new Date();
+    const { years, months, days, hours, minutes, seconds } = this.calculateDifference(CONFIG.INITIAL_DATE, now);
+
+    const unitsUpper = [
+      { value: years, name: utils.formatTimeUnit(years, 'ano', 'anos') },
+      { value: months, name: utils.formatTimeUnit(months, 'mês', 'meses') },
+      { value: days, name: utils.formatTimeUnit(days, 'dia', 'dias') }
+    ].filter(unit => unit.value > 0);
+
+    const unitsLower = [
+      { value: hours, name: utils.formatTimeUnit(hours, 'hora', 'horas') },
+      { value: minutes, name: utils.formatTimeUnit(minutes, 'minuto', 'minutos') },
+      { value: seconds, name: utils.formatTimeUnit(seconds, 'segundo', 'segundos') }
+    ].filter(unit => unit.value > 0);
+
+    const formatUpper = units => units.length ? units.map(unit => `${unit.value} ${unit.name}`).join(', ') : '';
+    const formatLower = units => {
+      if (!units.length) return '';
+      if (units.length === 1) return `${units[0].value} ${units[0].name}`;
+      const last = units.slice(-1)[0];
+      const others = units.slice(0, -1).map(unit => `${unit.value} ${unit.name}`).join(', ');
+      return `${others} e ${last.value} ${last.name}`;
+    };
+
+    const upper = formatUpper(unitsUpper);
+    const lower = formatLower(unitsLower);
+    DOM.timeDisplay.innerText = upper && lower ? `${upper}\n${lower}` : upper || lower || 'Menos de um segundo';
   }
+};
 
-  tempoElement.innerText = textoFinal;
-}
+// Efeito de corações
+const heartEffect = {
+  createBackgroundHeart() {
+    const heart = document.createElement('div');
+    heart.className = 'heart';
+    heart.style.left = `${Math.random() * 100}%`;
+    heart.style.animationDuration = `${4 + Math.random() * 4}s`;
+    DOM.heartsContainer.appendChild(heart);
+    setTimeout(() => heart.remove(), 8000);
+  },
 
-// Corações animados no fundo
-function criarCoracao() {
-  const heart = document.createElement('div');
-  heart.className = 'heart';
-  heart.style.left = `${Math.random() * 100}%`;
-  heart.style.animationDuration = `${4 + Math.random() * 4}s`;
-  heartsContainer.appendChild(heart);
-  setTimeout(() => heart.remove(), 8000);
-}
+  createPhotoHeart() {
+    const heart = document.createElement('div');
+    heart.className = 'photo-heart';
+    heart.innerHTML = CONFIG.EMOTICONS[Math.floor(Math.random() * CONFIG.EMOTICONS.length)];
+    heart.style.left = `${Math.random() * 100}%`;
+    heart.style.animationDuration = `${2 + Math.random() * 2}s`;
+    DOM.photoHeartsContainer.appendChild(heart);
+    setTimeout(() => heart.remove(), 4000);
+  },
 
-// Emoticons de corações na foto
-function criarCoracaoFoto() {
-  const heart = document.createElement('div');
-  heart.className = 'photo-heart';
-  heart.innerHTML = emoticons[Math.floor(Math.random() * emoticons.length)];
-  heart.style.left = `${Math.random() * 100}%`;
-  heart.style.animationDuration = `${2 + Math.random() * 2}s`;
-  photoHeartsContainer.appendChild(heart);
-  setTimeout(() => heart.remove(), 4000);
-}
+  start() {
+    const interval = setInterval(() => this.createPhotoHeart(), CONFIG.HEART_SPAWN_INTERVAL);
+    setTimeout(() => clearInterval(interval), CONFIG.HEART_ANIMATION_DURATION);
+  }
+};
 
-function iniciarEfeitoFoto() {
-  const intervalo = setInterval(criarCoracaoFoto, 200);
-  setTimeout(() => clearInterval(intervalo), 5000);
-}
+// Manipulação de comentários
+const commentManager = {
+  renderComments() {
+    DOM.commentsList.innerHTML = '';
+    CONFIG.INITIAL_COMMENTS.forEach(comment => {
+      const commentElement = document.createElement('div');
+      commentElement.className = 'comment';
+      commentElement.innerHTML = `
+        <img src="${comment.profilePic}" alt="${comment.username}'s profile picture" class="comment-profile-pic">
+        <div class="comment-content">
+          <div class="comment-username-container">
+            <span class="comment-username">${comment.username}</span>
+            <span class="verified-badge">✔</span>
+          </div>
+          <span class="comment-text">${comment.text}</span>
+        </div>
+      `;
+      DOM.commentsList.appendChild(commentElement);
+    });
+  },
+
+  openModal() {
+    this.renderComments();
+    DOM.commentModal.style.display = 'flex';
+    setTimeout(() => DOM.commentModal.classList.remove('hidden'), 10);
+  },
+
+  closeModal() {
+    DOM.commentModal.classList.add('hidden');
+    setTimeout(() => DOM.commentModal.style.display = 'none', 300);
+  }
+};
+
+// Ações dos botões
+const actionButtons = {
+  like() {
+    state.isLiked = !state.isLiked;
+    DOM.likeBtn.classList.toggle('liked', state.isLiked);
+    if (state.isLiked) heartEffect.start();
+  },
+
+  comment() {
+    commentManager.openModal();
+  },
+
+  share() {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Ezequiel & Érika',
+        text: 'Confira nossa história de amor! ❤️',
+        url: window.location.href
+      }).catch(error => console.error('Erro ao compartilhar:', error));
+    } else {
+      navigator.clipboard.writeText(window.location.href)
+        .then(() => alert('Link copiado! 📋'))
+        .catch(error => {
+          console.error('Erro ao copiar link:', error);
+          alert('Erro ao copiar link. 😕');
+        });
+    }
+  }
+};
 
 // Inicialização
-window.addEventListener('load', () => {
-  criarSequenciaImagens();
-  iniciarTrocaAutomatica();
-  iniciarEfeitoFoto();
-  soundWaves.style.display = 'none';
-  atualizarTempo();
-  setInterval(atualizarTempo, 1000);
-  setInterval(criarCoracao, 300);
-  audio.play().catch(updateButtonState);
-});
+const init = () => {
+  // Configurar imagens
+  photoManager.createSequence();
+  photoManager.startAutoSwap();
 
-// Tratamento de erro de imagem
-fotoElement.onerror = () => {
-  console.warn('Erro ao carregar imagem, revertendo para foto1.jpg');
-  fotoElement.src = 'img/foto1.jpg';
+  // Configurar gestos
+  DOM.photoContainer.addEventListener('touchstart', e => gestureHandler.handleTouchStart(e));
+  DOM.photoContainer.addEventListener('touchend', e => gestureHandler.handleTouchEnd(e));
+  DOM.photoContainer.addEventListener('dblclick', e => gestureHandler.handleDoubleClick(e));
+
+  // Configurar áudio
+  DOM.speakerBtn.addEventListener('click', () => audioManager.toggle());
+  DOM.audio.addEventListener('play', () => audioManager.updateButtonState());
+  DOM.audio.addEventListener('pause', () => audioManager.updateButtonState());
+  DOM.audio.addEventListener('ended', () => audioManager.updateButtonState());
+  DOM.audio.play().catch(() => audioManager.updateButtonState());
+
+  // Configurar botões
+  DOM.likeBtn.addEventListener('click', actionButtons.like);
+  DOM.commentBtn.addEventListener('click', actionButtons.comment);
+  DOM.shareBtn.addEventListener('click', actionButtons.share);
+  DOM.closeModalBtn.addEventListener('click', () => commentManager.closeModal());
+  DOM.likeBtn.classList.add('liked');
+
+  // Configurar contador de tempo
+  timeCounter.update();
+  setInterval(() => timeCounter.update(), 1000);
+
+  // Configurar corações de fundo
+  setInterval(() => heartEffect.createBackgroundHeart(), CONFIG.BACKGROUND_HEART_INTERVAL);
+
+  // Configurar efeito inicial
+  heartEffect.start();
+
+  // Tratamento de erros de imagem
+  DOM.currentPhoto.onerror = () => {
+    console.warn('Erro ao carregar imagem, revertendo para foto1.jpg');
+    DOM.currentPhoto.src = 'img/foto1.jpg';
+  };
+  DOM.nextPhoto.onerror = () => {
+    console.warn('Erro ao carregar próxima imagem, revertendo para foto1.jpg');
+    DOM.nextPhoto.src = 'img/foto1.jpg';
+  };
 };
-fotoProximaElement.onerror = () => {
-  console.warn('Erro ao carregar próxima imagem, revertendo para foto1.jpg');
-  fotoProximaElement.src = 'img/foto1.jpg';
-};
+
+// Executar inicialização
+window.addEventListener('load', init);
