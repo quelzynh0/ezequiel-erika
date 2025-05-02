@@ -1,16 +1,25 @@
-/* Reset básico */
+/* Variáveis */
+:root {
+  --primary-color: #ff3366;
+  --bg-color: #111;
+  --text-color: #fff;
+  --font-family: Arial, sans-serif;
+  --container-width: 320px;
+  --transition: 0.3s ease-in-out;
+}
+
+/* Reset */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* Estilização do corpo */
+/* Corpo */
 body {
-  background-color: #111;
-  color: #fff;
-  font-family: Arial, sans-serif;
-  font-size: 14px;
+  background: var(--bg-color);
+  color: var(--text-color);
+  font: 14px var(--font-family);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -20,63 +29,69 @@ body {
   overflow-x: hidden;
 }
 
-/* Container principal */
+/* Container */
 .container {
   text-align: center;
-  max-width: 320px;
+  max-width: var(--container-width);
   width: 100%;
   z-index: 1;
 }
 
-/* Controles de áudio */
-.audio-controls {
+/* Profile Header */
+.profile-header {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  padding: 0 10px;
+}
+
+.profile-pic {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.profile-username-container {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 20px;
 }
 
-.audio-controls button {
-  background-color: #ff3366;
-  color: #fff;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.3s;
+.profile-username {
+  font-weight: bold;
+  color: var(--text-color);
+  font-size: 12px; /* Matches comment username size */
 }
 
-.audio-controls button:hover {
-  background-color: #cc2952;
-}
-
-/* Ondas sonoras */
-.sound-waves {
-  display: none;
+.verified-badge {
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  background-color: #0095f6; /* Instagram's blue badge color */
+  border-radius: 50%;
+  color: #000; /* Black checkmark */
+  font-size: 10px;
+  margin-left: 4px;
+  border: 1px solid #000; /* Black ring around badge */
 }
 
-.sound-waves span {
-  display: inline-block;
-  width: 4px;
-  height: 20px;
-  background-color: #ff3366;
-  animation: wave 1.2s infinite ease-in-out;
+.profile-music {
+  font-size: 11px;
+  color: var(--text-color);
+  margin-top: 2px;
 }
 
-.sound-waves span:nth-child(2) { animation-delay: 0.2s; }
-.sound-waves span:nth-child(3) { animation-delay: 0.4s; }
-.sound-waves span:nth-child(4) { animation-delay: 0.6s; }
-
-@keyframes wave {
-  0%, 100% { transform: scaleY(1); }
-  50% { transform: scaleY(2); }
-}
-
-/* Container da foto */
+/* Foto */
 .foto {
   width: 100%;
   height: 400px;
@@ -84,20 +99,20 @@ body {
   overflow: hidden;
   margin-bottom: 10px;
   position: relative;
-  background-color: #111;
+  background: var(--bg-color);
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: none;
 }
 
 .foto img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  transition: opacity 0.3s ease-in-out; /* Reduzido de 0.5s para 0.3s */
+  transition: opacity var(--transition);
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
 }
@@ -106,13 +121,211 @@ body {
   opacity: 0;
 }
 
-/* Estilização de textos */
-h2, #tempo, .amor {
-  font-family: Arial, sans-serif;
+.photo-hearts {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.photo-heart {
+  position: absolute;
   font-size: 16px;
-  font-weight: normal;
+  animation: fall-photo 4s linear forwards;
+}
+
+@keyframes fall-photo {
+  0% {
+    transform: translateY(-20px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(400px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.speaker-btn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  transition: transform 0.2s ease-in-out;
+}
+
+.speaker-btn:active {
+  transform: scale(0.9);
+}
+
+.speaker-btn .speaker-icon {
+  width: 24px;
+  height: 24px;
+  stroke: var(--text-color);
+  fill: none;
+  transition: stroke var(--transition);
+}
+
+.speaker-btn:hover .speaker-icon {
+  stroke: var(--primary-color);
+}
+
+/* Botões de ação */
+.action-buttons {
+  display: flex;
+  justify-content: flex-start;
+  gap: 15px;
+  margin: 10px 0;
+  padding: 0 10px;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: transform 0.2s ease-in-out;
+}
+
+.action-btn:active {
+  transform: scale(0.9);
+}
+
+.action-btn .icon {
+  width: 24px;
+  height: 24px;
+  stroke: var(--text-color);
+  fill: none;
+  transition: fill var(--transition), stroke var(--transition);
+}
+
+.action-btn.liked .icon {
+  fill: var(--primary-color);
+  stroke: var(--primary-color);
+}
+
+.action-btn:hover .icon {
+  stroke: var(--primary-color);
+}
+
+.action-btn .count {
+  font-size: 12px;
+  color: var(--text-color);
+}
+
+/* Modal de Comentários */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  transition: opacity var(--transition);
+}
+
+.modal.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.modal-content {
+  background: var(--bg-color);
+  border-radius: 10px;
+  width: 90%;
+  max-width: var(--container-width);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid #333;
+}
+
+.modal-header h3 {
+  font-size: 16px;
+  color: var(--text-color);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.comments-list {
+  padding: 15px;
+  overflow-y: auto;
+  flex: 1;
+  text-align: left; /* Left-align comments */
+}
+
+.comment {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
+.comment-profile-pic {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.comment-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  text-align: left; /* Left-align username and text */
+}
+
+.comment-username-container {
+  display: flex;
+  align-items: center;
+}
+
+.comment-username {
+  font-weight: bold;
+  color: var(--text-color);
+  font-size: 12px; /* Smaller username */
+  margin-bottom: 3px; /* Separation from comment text */
+}
+
+.comment-text {
+  color: var(--text-color);
+  font-size: 13px;
+  word-break: break-word;
+  line-height: 1.4; /* Ensures text is on a new line */
+}
+
+/* Textos */
+h2,
+#tempo,
+.amor {
+  font: 16px var(--font-family);
   line-height: 1.4;
-  color: #fff;
+  color: var(--text-color);
 }
 
 h2 {
@@ -123,13 +336,24 @@ h2 {
   margin-top: 20px;
 }
 
-/* Corações animados no fundo */
+/* Separador */
+.separador {
+  border: 0;
+  height: 2px;
+  background: linear-gradient(to right, transparent, var(--primary-color), transparent);
+  margin: 15px auto;
+  width: 80%;
+}
+
+/* Áudio */
+audio {
+  display: none;
+}
+
+/* Corações de fundo */
 .hearts {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   pointer-events: none;
   z-index: 0;
 }
@@ -143,42 +367,12 @@ h2 {
 }
 
 @keyframes fall {
-  0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
-}
-
-/* Corações na foto */
-.photo-hearts {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.photo-heart {
-  position: absolute;
-  font-size: 16px;
-  animation: fall-photo 4s linear forwards;
-}
-
-@keyframes fall-photo {
-  0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(400px) rotate(360deg); opacity: 0; }
-}
-
-/* Áudio */
-audio {
-  display: none;
-}
-
-/* Separador */
-.separador {
-  border: 0;
-  height: 2px;
-  background: linear-gradient(to right, transparent, #ff3366, transparent);
-  margin: 15px auto;
-  width: 80%;
+  0% {
+    transform: translateY(-100px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
 }
